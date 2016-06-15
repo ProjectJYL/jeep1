@@ -54,7 +54,7 @@ role_e role = role_pong_back;
 
 #define LED13 13
 
-typedef struct RF_Buf {
+typedef struct RF_buf {
   uint16_t JeepID;
   unsigned long timestamp;
   };
@@ -130,7 +130,8 @@ void RF_Loop(void)
   //
 
   //create the buf here
-  RF_Buf buf1;
+  RF_buf tx_buf; //transmit buffer
+  RF_buf rx_buf; //receive buffer
 
   if (role == role_ping_out)
   {
@@ -139,37 +140,18 @@ void RF_Loop(void)
 
     // Take the time, and send it.  This will block until complete
     //send timestamp and jeep name
-    buf1.JeepID = 1;
-    buf1.timestamp = millis();
-    bool ok = radio.write( &buf1, sizeof(RF_Buf) );
-
+    tx_buf.JeepID = 1;
+    tx_buf.timestamp = millis();
+    bool ok = radio.write( &tx_buf, sizeof(RF_buf) );
+    //print the output
     if(ok)
     {
-      printf("OK. Jeep id: %d. Timestamp: %lu.", buf1.JeepID, buf1.timestamp);
+      printf("Data SENT! Jeep id: %d. Timestamp: %lu. \n\r", tx_buf.JeepID, tx_buf.timestamp);
     }
-//    char *buf = (char*) malloc(20); //allocate memory for the buffer
-//    unsigned long timestamp_buf; //buffer for later 
-//    unsigned long timestamp = millis(); //create timestamp 
-//    strcpy(buf, "JEEP1");
-    //-----Maybe add a delimiter in the buf and parse the timestamp-------------
-//    strncat(buf, ",", 1);
-    //printf("Now sending %s...", buf);
-    //convert timestamp of long int to string
-    //-----let's try a C data struct-------------
-//    bool ok = radio.write( buf, strlen(buf) ); //change to char array length
+    else{
+      printf("FAILED to send the data. :(\n\r");
+    }
 
-//    if (ok)
-//      printf("ok. Jeep name: %s sent.\n\r", buf);
-//    else
-//      printf("Cannot send jeep name.\n\r");
-
-//    ok = radio.write(&timestamp, sizeof(unsigned long) );
-
-//    if (ok)
-//      printf("ok. Timestamp: %lu sent.\n\r", timestamp);
-//    else
-//      printf("Cannot send timestamp.\n\r");
-      
     // Now, continue listening. switch to listening mode
     radio.startListening();
 
@@ -187,13 +169,11 @@ void RF_Loop(void)
     }
     else
     {
-      // Grab the response, compare, and send to debugging spew
-      //flash the LED13
-      //write on display
-      clearDisplay(WHITE);
+      radio.read(&rx_buf, radio.getPayloadSize());       // Grab the response, compare, and send to debugging spew
+      clearDisplay(WHITE); //flash the LED13 write on display
       //display the received message and additional info
-//      setStr(buf, 0, 0, BLACK);
-//      setStr("Jeep passed.", strlen(buf), 0, BLACK);
+      setStr("Jeep ID:", 0, 0, BLACK);
+      setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
       updateDisplay();
       digitalWrite(LED13, HIGH);
       delay(200);
