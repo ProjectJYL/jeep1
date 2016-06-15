@@ -174,6 +174,8 @@ void RF_Loop(void)
       //display the received message and additional info
       setStr("Jeep ID:", 0, 0, BLACK);
       setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
+      setStr("Time: ", 0, 8, BLACK);
+      //convert long to string and display it
       updateDisplay();
       digitalWrite(LED13, HIGH);
       delay(200);
@@ -197,16 +199,11 @@ void RF_Loop(void)
     if ( radio.available() )
     {
       // Dump the payloads until we've gotten everything
-      char *buf; //string buffer
-      char *buf1; //2nd string buffer to store timestamp
-      unsigned long timestamp_buf;
-      buf = (char*) malloc(20); //allocate memory for the buffers
-      buf1 = (char*) malloc(20); 
       bool done = false;
       while (!done)
       {
         // Fetch the payload, and see if this was the last one.
-        done = radio.read(buf, radio.getPayloadSize() );
+        done = radio.read(rx_buf, radio.getPayloadSize() );
         
         //write on display
         clearDisplay(WHITE);
