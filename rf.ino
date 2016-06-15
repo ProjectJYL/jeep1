@@ -175,7 +175,7 @@ void RF_Loop(void)
       setStr("Jeep ID:", 0, 0, BLACK);
       setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
       setStr("Time: ", 0, 8, BLACK);
-      //convert long to string and display it
+      setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
       updateDisplay();
       digitalWrite(LED13, HIGH);
       delay(200);
@@ -195,6 +195,7 @@ void RF_Loop(void)
   //
   if ( role == role_pong_back )
   {
+    /*
     // if there is data ready
     if ( radio.available() )
     {
@@ -203,7 +204,7 @@ void RF_Loop(void)
       while (!done)
       {
         // Fetch the payload, and see if this was the last one.
-        done = radio.read(rx_buf, radio.getPayloadSize() );
+        done = radio.read(&rx_buf, radio.getPayloadSize() );
         
         //write on display
         clearDisplay(WHITE);
@@ -256,6 +257,8 @@ void RF_Loop(void)
       radio.startListening();
       delete(buf);
     }
+
+    */
   }
 
   //
@@ -285,4 +288,27 @@ void RF_Loop(void)
     }
   }
 }
-// vim:cin:ai:sts=2 sw=2 ft=cpp
+
+//char * convertLtoStr(unsigned long value)
+//{
+//  //max is 4,294,967,295
+//  char * converted; //temp string for manipulation and return
+//  converted = (char *)malloc(10);
+//  //converted = converted + 9;
+//  //start with most significant digit
+//  //reduce one zero from the divider
+//  //use a for loop
+//  for(long divider = 1000000000, converted = converted+9 ; divider > 0; divider/10, converted--)
+//  {
+//    if(value/divider)
+//    {
+//      *converted = value/divider + 0x30;
+//    }
+//    else
+//    {
+//      *converted = 0x30;
+//    }
+//  }
+//  return converted;
+//}
+//// vim:cin:ai:sts=2 sw=2 ft=cpp
