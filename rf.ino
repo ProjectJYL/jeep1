@@ -180,12 +180,7 @@ void RF_Loop(void)
       digitalWrite(LED13, HIGH);
       delay(200);
       digitalWrite(LED13, LOW);
-//----------------------Can't transfer timestamp because the write function blocks.---------------------------------
-      //read timestamp response
-      //read second time for the timestamp response from the buffer
-//      printf("Got timestamp response: %lu. \n\r", timestamp_buf);
     }
-//    delete(buf); //free up some space
     // Try again 1s later
     delay(1000); //to allow faster role transition reduce the time. 
   }
@@ -195,6 +190,30 @@ void RF_Loop(void)
   //
   if ( role == role_pong_back )
   {
+    // if there is data ready
+    if(radio.available())
+    {
+      // Dump the payloads until we've gotten everything
+      bool done = false;
+      while(!done)
+      {
+        // Fetch the payload, and see if this was the last one.
+        done = radio.read(&rx_buf, radio.getPayloadSize() );
+        //write on display once
+        clearDisplay(WHITE);
+        setStr("Jeep ID:", 0, 0, BLACK);
+        setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
+        setStr("Time: ", 0, 8, BLACK);
+        setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
+        updateDisplay();
+        digitalWrite(LED13, HIGH); //flash the lED
+        delay(200);
+        digitalWrite(LED13, LOW);
+        // Delay just a little bit to let the other unit and make the transition to receiver
+        delay(20);
+      }
+      //stop listening and trasmit data back here
+    }
     /*
     // if there is data ready
     if ( radio.available() )
