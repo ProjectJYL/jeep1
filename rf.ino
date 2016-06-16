@@ -205,14 +205,14 @@ void RF_Loop(void)
         // Fetch the payload, and see if this was the last one.
         done = radio.read(&rx_buf, radio.getPayloadSize() );
         //write on display once
-        clearDisplay(WHITE);
-        setStr("Jeep ID:", 0, 0, BLACK);
-        setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
-        setStr("Time: ", 0, 8, BLACK);
-        //use sprintf to output long int to a char array buffer then display it
-        sprintf(long_str, "%lu", rx_buf.timestamp);
-        setStr(long_str, 6, 8, BLACK);
-        updateDisplay();
+//        clearDisplay(WHITE);
+//        setStr("Jeep ID:", 0, 0, BLACK);
+//        setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
+//        setStr("Time: ", 0, 8, BLACK);
+//        //use sprintf to output long int to a char array buffer then display it
+//        sprintf(long_str, "%lu", rx_buf.timestamp);
+//        setStr(long_str, 6, 8, BLACK);
+//        updateDisplay();
         digitalWrite(LED13, HIGH); //flash the lED
         delay(200);
         digitalWrite(LED13, LOW);
@@ -220,71 +220,21 @@ void RF_Loop(void)
         delay(20);
       }
       //stop listening and trasmit data back here
-    }
-    /*
-    // if there is data ready
-    if ( radio.available() )
-    {
-      // Dump the payloads until we've gotten everything
-      bool done = false;
-      while (!done)
-      {
-        // Fetch the payload, and see if this was the last one.
-        done = radio.read(&rx_buf, radio.getPayloadSize() );
-        
-        //write on display
-        clearDisplay(WHITE);
-        setStr(buf, 0, 0, BLACK);
-        updateDisplay();
-        printf("Got payload %s...", buf);
-        
-        //read the timestamp from the buffer
-        done = radio.read(&timestamp_buf, sizeof(unsigned long) );
-
-        //continue to write on display
-        //need to convert timestamp to string
-        itoa(timestamp_buf, buf1, 10); //store the str value in the second buf
-        setStr(buf1, 0, 8, BLACK); // y=8, write timestamp on next line
-        updateDisplay();
-//        printf("Got payload %lu...", timestamp_buf);
-        printf("Got payload %s...", buf1);
-        // Delay just a little bit to let the other unit
-        // make the transition to receiver
-        delay(20);
-      }
-
-      // First, stop listening so we can talk
       radio.stopListening();
 
-      // Send the final one back.
-      bool ok = radio.write( buf, strlen(buf) );
-
+      //Send the final one back 
+      bool ok = radio.write(&rx_buf, sizeof(RF_buf) );
+      //check transmit status
       if(ok)
       {
-        printf("Sent jeep name. ");
+        printf("Sent response Jeep: %d and timestamp: %lu", rx_buf.JeepID, rx_buf.timestamp);
       }
       else
       {
-        printf("Can't send jeep name. \n\r");
+        printf("Can't send response. \n\r");
       }
-      //send timestamp
-      ok = radio.write(&timestamp_buf, sizeof(unsigned long) );
-      
-      if(ok)
-      {
-        printf("Sent timestamp. ");
-      }
-      else
-      {
-        printf("Can't send timestamp. \n\r");
-      }
-
-      // Now, resume listening so we catch the next packets.
-      radio.startListening();
-      delete(buf);
+      radio.startListening(); //start listening again
     }
-
-    */
   }
 
   //
