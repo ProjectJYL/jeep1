@@ -169,13 +169,18 @@ void RF_Loop(void)
     }
     else
     {
+      char *long_str; //for display long int as char array
+      long_str = (char *) malloc(10); 
       radio.read(&rx_buf, radio.getPayloadSize());       // Grab the response, compare, and send to debugging spew
       clearDisplay(WHITE); //flash the LED13 write on display
       //display the received message and additional info
       setStr("Jeep ID:", 0, 0, BLACK);
       setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
       setStr("Time: ", 0, 8, BLACK);
-      setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
+//      setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
+      //use sprintf to output long int to a char array buffer then display it
+      sprintf(long_str, "%lu", rx_buf.timestamp);
+      setStr(long_str, 6, 8, BLACK);
       updateDisplay();
       digitalWrite(LED13, HIGH);
       delay(200);
@@ -204,7 +209,9 @@ void RF_Loop(void)
         setStr("Jeep ID:", 0, 0, BLACK);
         setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
         setStr("Time: ", 0, 8, BLACK);
-        setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
+        //use sprintf to output long int to a char array buffer then display it
+        sprintf(long_str, "%lu", rx_buf.timestamp);
+        setStr(long_str, 6, 8, BLACK);
         updateDisplay();
         digitalWrite(LED13, HIGH); //flash the lED
         delay(200);
