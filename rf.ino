@@ -54,10 +54,15 @@ role_e role = role_pong_back;
 
 #define LED13 13
 
-typedef struct RF_Buf {
+typedef struct RF_buf {
   uint16_t JeepID;
   unsigned long timestamp;
   };
+
+
+//create the buf here
+static RF_buf tx_buf; //transmit buffer
+static RF_buf rx_buf; //receive buffer
 
 void RF_Setup(void)
 {
@@ -129,8 +134,6 @@ void RF_Loop(void)
   // Ping out role.  Repeatedly send the current time
   //
 
-  //create the buf here
-  RF_Buf buf1;
 
   if (role == role_ping_out)
   {
@@ -139,37 +142,17 @@ void RF_Loop(void)
 
     // Take the time, and send it.  This will block until complete
     //send timestamp and jeep name
-    buf1.JeepID = 1;
-    buf1.timestamp = millis();
-    bool ok = radio.write( &buf1, sizeof(RF_Buf) );
-
+    tx_buf.JeepID = 1;
+    tx_buf.timestamp = millis();
+    bool ok = radio.write( &tx_buf, sizeof(RF_buf) );
+    //print the output
     if(ok)
     {
-      printf("OK. Jeep id: %d. Timestamp: %lu.", buf1.JeepID, buf1.timestamp);
+      printf("Data SENT! Jeep id: %d. Timestamp: %lu. ", tx_buf.JeepID, tx_buf.timestamp);
     }
-//    char *buf = (char*) malloc(20); //allocate memory for the buffer
-//    unsigned long timestamp_buf; //buffer for later 
-//    unsigned long timestamp = millis(); //create timestamp 
-//    strcpy(buf, "JEEP1");
-    //-----Maybe add a delimiter in the buf and parse the timestamp-------------
-//    strncat(buf, ",", 1);
-    //printf("Now sending %s...", buf);
-    //convert timestamp of long int to string
-    //-----let's try a C data struct-------------
-//    bool ok = radio.write( buf, strlen(buf) ); //change to char array length
-
-//    if (ok)
-//      printf("ok. Jeep name: %s sent.\n\r", buf);
-//    else
-//      printf("Cannot send jeep name.\n\r");
-
-//    ok = radio.write(&timestamp, sizeof(unsigned long) );
-
-//    if (ok)
-//      printf("ok. Timestamp: %lu sent.\n\r", timestamp);
-//    else
-//      printf("Cannot send timestamp.\n\r");
-      
+    else{
+      printf("FAILED to send the data :(. ");
+    }
     // Now, continue listening. switch to listening mode
     radio.startListening();
 
@@ -177,33 +160,40 @@ void RF_Loop(void)
     unsigned long started_waiting_at = millis();
     bool timeout = false;
     while ( ! radio.available() && ! timeout )
-      if (millis() - started_waiting_at > 200 )
+      if (millis() - started_waiting_at > 300 ) //increase timeout period
         timeout = true;
 
     // Describe the results
+    //response timeout
     if ( timeout )
     {
       printf("Failed, response timed out.\n\r");
-    }
+    } //proceed to print the result received
     else
     {
-      // Grab the response, compare, and send to debugging spew
-      //flash the LED13
-      //write on display
-      clearDisplay(WHITE);
+      char *long_str; //for display long int as char array
+      long_str = (char *) malloc(10); 
+      bool ok = radio.read(&rx_buf, sizeof(RF_buf) );       // Grab the response, compare, and send to debugging spew
+//      clearDisplay(WHITE); //flash the LED13 write on display
       //display the received message and additional info
-//      setStr(buf, 0, 0, BLACK);
-//      setStr("Jeep passed.", strlen(buf), 0, BLACK);
-      updateDisplay();
+//      setStr("Jeep ID:", 0, 0, BLACK);
+//      setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
+//      setStr("Time: ", 0, 8, BLACK);
+//      setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
+      //use sprintf to output long int to a char array buffer then display it
+      sprintf(long_str, "%lu", rx_buf.timestamp);
+//      setStr(long_str, 30, 8, BLACK);
+//      updateDisplay();
+      if(ok){
+         printf("Response RECEIVED! Jeep id: %d. Timestamp: %lu. ", rx_buf.JeepID, rx_buf.timestamp);
+      }
+      else{
+        printf("FAILED to receive the response. :(\n\r");
+      }
       digitalWrite(LED13, HIGH);
       delay(200);
       digitalWrite(LED13, LOW);
-//----------------------Can't transfer timestamp because the write function blocks.---------------------------------
-      //read timestamp response
-      //read second time for the timestamp response from the buffer
-//      printf("Got timestamp response: %lu. \n\r", timestamp_buf);
     }
-//    delete(buf); //free up some space
     // Try again 1s later
     delay(1000); //to allow faster role transition reduce the time. 
   }
@@ -214,70 +204,44 @@ void RF_Loop(void)
   if ( role == role_pong_back )
   {
     // if there is data ready
-    if ( radio.available() )
+    if(radio.available())
     {
       // Dump the payloads until we've gotten everything
-      char *buf; //string buffer
-      char *buf1; //2nd string buffer to store timestamp
-      unsigned long timestamp_buf;
-      buf = (char*) malloc(20); //allocate memory for the buffers
-      buf1 = (char*) malloc(20); 
       bool done = false;
-      while (!done)
+      while(!done)
       {
         // Fetch the payload, and see if this was the last one.
-        done = radio.read(buf, radio.getPayloadSize() );
-        
-        //write on display
-        clearDisplay(WHITE);
-        setStr(buf, 0, 0, BLACK);
-        updateDisplay();
-        printf("Got payload %s...", buf);
-        
-        //read the timestamp from the buffer
-        done = radio.read(&timestamp_buf, sizeof(unsigned long) );
-
-        //continue to write on display
-        //need to convert timestamp to string
-        itoa(timestamp_buf, buf1, 10); //store the str value in the second buf
-        setStr(buf1, 0, 8, BLACK); // y=8, write timestamp on next line
-        updateDisplay();
-//        printf("Got payload %lu...", timestamp_buf);
-        printf("Got payload %s...", buf1);
-        // Delay just a little bit to let the other unit
-        // make the transition to receiver
+        done = radio.read(&rx_buf, sizeof(RF_buf) );
+        //write on display once
+//        clearDisplay(WHITE);
+//        setStr("Jeep ID:", 0, 0, BLACK);
+//        setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
+//        setStr("Time: ", 0, 8, BLACK);
+//        //use sprintf to output long int to a char array buffer then display it
+//        sprintf(long_str, "%lu", rx_buf.timestamp);
+//        setStr(long_str, 6, 8, BLACK);
+//        updateDisplay();
+        digitalWrite(LED13, HIGH); //flash the lED
+        delay(200);
+        digitalWrite(LED13, LOW);
+        // Delay just a little bit to let the other unit and make the transition to receiver
         delay(20);
       }
-
-      // First, stop listening so we can talk
+      //stop listening and trasmit data back here
       radio.stopListening();
 
-      // Send the final one back.
-      bool ok = radio.write( buf, strlen(buf) );
-
+      //Send the final one back 
+      bool ok = radio.write(&rx_buf, sizeof(RF_buf) );
+      //check transmit status
       if(ok)
       {
-        printf("Sent jeep name. ");
+        printf("Sent response Jeep: %d and timestamp: %lu", rx_buf.JeepID, rx_buf.timestamp);
       }
       else
       {
-        printf("Can't send jeep name. \n\r");
+        printf("Can't send response. \n\r");
       }
-      //send timestamp
-      ok = radio.write(&timestamp_buf, sizeof(unsigned long) );
-      
-      if(ok)
-      {
-        printf("Sent timestamp. ");
-      }
-      else
-      {
-        printf("Can't send timestamp. \n\r");
-      }
-
-      // Now, resume listening so we catch the next packets.
-      radio.startListening();
-      delete(buf);
+      radio.startListening(); //start listening again
     }
   }
 
@@ -308,4 +272,27 @@ void RF_Loop(void)
     }
   }
 }
-// vim:cin:ai:sts=2 sw=2 ft=cpp
+
+//char * convertLtoStr(unsigned long value)
+//{
+//  //max is 4,294,967,295
+//  char * converted; //temp string for manipulation and return
+//  converted = (char *)malloc(10);
+//  //converted = converted + 9;
+//  //start with most significant digit
+//  //reduce one zero from the divider
+//  //use a for loop
+//  for(long divider = 1000000000, converted = converted+9 ; divider > 0; divider/10, converted--)
+//  {
+//    if(value/divider)
+//    {
+//      *converted = value/divider + 0x30;
+//    }
+//    else
+//    {
+//      *converted = 0x30;
+//    }
+//  }
+//  return converted;
+//}
+//// vim:cin:ai:sts=2 sw=2 ft=cpp
