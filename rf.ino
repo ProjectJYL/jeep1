@@ -53,6 +53,7 @@ const char* role_friendly_name[] = { "invalid", "Ping out", "Pong back"};
 role_e role = role_pong_back;
 
 #define LED13 13
+#define JEEP_ID 1
 
 typedef struct RF_buf {
   uint16_t JeepID;
@@ -63,6 +64,8 @@ typedef struct RF_buf {
 //create the buf here
 static RF_buf tx_buf; //transmit buffer
 static RF_buf rx_buf; //receive buffer
+
+
 
 void RF_Setup(void)
 {
@@ -126,6 +129,7 @@ void RF_Setup(void)
   role = role_ping_out;
   radio.openWritingPipe(pipes[0]);
   radio.openReadingPipe(1, pipes[1]);
+  tx_buf.JeepID = JEEP_ID;
 }
 
 void RF_Loop(void)
@@ -142,7 +146,6 @@ void RF_Loop(void)
 
     // Take the time, and send it.  This will block until complete
     //send timestamp and jeep name
-    tx_buf.JeepID = 1;
     tx_buf.timestamp = millis();
     bool ok = radio.write( &tx_buf, sizeof(RF_buf) );
     //print the output
@@ -174,18 +177,17 @@ void RF_Loop(void)
       char *long_str; //for display long int as char array
       long_str = (char *) malloc(10); 
       bool ok = radio.read(&rx_buf, sizeof(RF_buf) );       // Grab the response, compare, and send to debugging spew
-//      clearDisplay(WHITE); //flash the LED13 write on display
+      clearDisplay(WHITE); //flash the LED13 write on display
       //display the received message and additional info
-//      setStr("Jeep ID:", 0, 0, BLACK);
-//      setStr(itoa(rx_buf.JeepID, NULL ,10), 40, 0, BLACK);
-//      setStr("Time: ", 0, 8, BLACK);
-//      setStr( itoa(rx_buf.timestamp/1000,NULL ,10), 6, 8, BLACK);//convert msec to sec
+      setStr("Jeep ID:", 0, 0, BLACK);
+      setStr(itoa(rx_buf.JeepID, NULL ,10), 45, 0, BLACK);
+      setStr("Time: ", 0, 8, BLACK);
       //use sprintf to output long int to a char array buffer then display it
       sprintf(long_str, "%lu", rx_buf.timestamp);
-//      setStr(long_str, 30, 8, BLACK);
-//      updateDisplay();
+      setStr(long_str, 30, 8, BLACK);
+      updateDisplay();
       if(ok){
-         printf("Response RECEIVED! Jeep id: %d. Timestamp: %lu. ", rx_buf.JeepID, rx_buf.timestamp);
+         printf("Response RECEIVED! Jeep id: %d. Timestamp: %lu. \n\r", rx_buf.JeepID, rx_buf.timestamp);
       }
       else{
         printf("FAILED to receive the response. :(\n\r");
