@@ -177,6 +177,8 @@ void RF_Loop(void)
       char *long_str; //for display long int as char array
       long_str = (char *) malloc(10); 
       bool ok = radio.read(&rx_buf, sizeof(RF_buf) );       // Grab the response, compare, and send to debugging spew
+      uint16_t response_time = millis() - tx_buf.timestamp; //calculate response time
+      rx_buf.timestamp = millis(); //timestamp for receiving the response
       clearDisplay(WHITE); //flash the LED13 write on display
       //display the received message and additional info
       setStr("Jeep ID:", 0, 0, BLACK);
@@ -185,6 +187,10 @@ void RF_Loop(void)
       //use sprintf to output long int to a char array buffer then display it
       sprintf(long_str, "%lu", rx_buf.timestamp);
       setStr(long_str, 30, 8, BLACK);
+      //display response time
+      sprintf(long_str, "%d", response_time);
+      setStr("Elapsed: ", 0, 16, BLACK);
+      setStr(long_str, 50, 16, BLACK);
       updateDisplay();
       if(ok){
          printf("Response RECEIVED! Jeep id: %d. Timestamp: %lu. \n\r", rx_buf.JeepID, rx_buf.timestamp);
@@ -197,7 +203,7 @@ void RF_Loop(void)
       digitalWrite(LED13, LOW);
     }
     // Try again 1s later
-    delay(1000); //to allow faster role transition reduce the time. 
+    delay(500); //to allow faster role transition reduce the time. 
   }
 
   //
