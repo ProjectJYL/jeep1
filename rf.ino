@@ -65,8 +65,6 @@ typedef struct RF_buf {
 static RF_buf tx_buf; //transmit buffer
 static RF_buf rx_buf; //receive buffer
 
-
-
 void RF_Setup(void)
 {
   //
@@ -101,34 +99,29 @@ void RF_Setup(void)
   // Open 'our' pipe for writing
   // Open the 'other' pipe for reading, in position #1 (we can have up to 5 pipes open for reading)
 
-  //if ( role == role_ping_out )
+  if ( role == role_ping_out )
   {
-    //radio.openWritingPipe(pipes[0]);
+    radio.openWritingPipe(pipes[0]);
     radio.openReadingPipe(1, pipes[1]);
   }
-  //else
+  else
   {
-    //radio.openWritingPipe(pipes[1]);
-    //radio.openReadingPipe(1,pipes[0]);
+    role = role_pong_back;
+    radio.openWritingPipe(pipes[1]);
+    radio.openReadingPipe(1,pipes[0]);
   }
 
   //
   // Start listening
   //
-
   radio.startListening();
 
   //
   // Dump the configuration of the rf unit for debugging
   //
-
   radio.setPALevel(RF24_PA_LOW);
   radio.setDataRate(RF24_2MBPS);
   radio.printDetails();
-  //change role to ping_out
-  role = role_ping_out;
-  radio.openWritingPipe(pipes[0]);
-  radio.openReadingPipe(1, pipes[1]);
   tx_buf.JeepID = JEEP_ID;
 }
 
@@ -137,8 +130,6 @@ void RF_Loop(void)
   //
   // Ping out role.  Repeatedly send the current time
   //
-
-
   if (role == role_ping_out)
   {
     // First, stop listening so we can talk.
@@ -156,6 +147,7 @@ void RF_Loop(void)
     else{
       printf("FAILED to send the data :(. ");
     }
+    
     // Now, continue listening. switch to listening mode
     radio.startListening();
 
@@ -172,6 +164,8 @@ void RF_Loop(void)
     {
       printf("Failed, response timed out.\n\r");
     } //proceed to print the result received
+
+    /*
     else
     {
       char *long_str; //for display long int as char array
@@ -202,8 +196,9 @@ void RF_Loop(void)
       delay(200);
       digitalWrite(LED13, LOW);
     }
+    */
     // Try again 1s later
-    delay(500); //to allow faster role transition reduce the time. 
+    //delay(1000); //to allow faster role transition reduce the time. 
   }
 
   //
@@ -211,8 +206,14 @@ void RF_Loop(void)
   //
   if ( role == role_pong_back )
   {
+     // Wait here until we get a response, or timeout (250ms)
+    unsigned long started_waiting_at = millis();
+    bool timeout = false;
+    while ( ! radio.available() && ! timeout )
+      if (millis() - started_waiting_at > 250 ) //increase timeout period
+        timeout = true;
     // if there is data ready
-    if(radio.available())
+    if(!timeout)
     {
       // Dump the payloads until we've gotten everything
       bool done = false;
@@ -235,6 +236,8 @@ void RF_Loop(void)
         // Delay just a little bit to let the other unit and make the transition to receiver
         delay(20);
       }
+      //let's print out the data received
+      printf("Data RECEIVED! Jeep id: %d. Timestamp: %lu. \n\r", rx_buf.JeepID, rx_buf.timestamp);
       //stop listening and trasmit data back here
       radio.stopListening();
 
@@ -251,6 +254,20 @@ void RF_Loop(void)
       }
       radio.startListening(); //start listening again
     }
+  }
+
+  //swtich role back and forth
+  if(role == role_ping_out)
+  {
+    printf("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK\n\r");
+    role = role_pong_back;
+    radio.openWritingPipe(pipes[1]);
+    radio.openReadingPipe(1, pipes[0]);
+  }else{
+    printf("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK\n\r");
+    role = role_ping_out;
+    radio.openWritingPipe(pipes[0]);
+    radio.openReadingPipe(1, pipes[1]);
   }
 
   //
@@ -281,26 +298,4 @@ void RF_Loop(void)
   }
 }
 
-//char * convertLtoStr(unsigned long value)
-//{
-//  //max is 4,294,967,295
-//  char * converted; //temp string for manipulation and return
-//  converted = (char *)malloc(10);
-//  //converted = converted + 9;
-//  //start with most significant digit
-//  //reduce one zero from the divider
-//  //use a for loop
-//  for(long divider = 1000000000, converted = converted+9 ; divider > 0; divider/10, converted--)
-//  {
-//    if(value/divider)
-//    {
-//      *converted = value/divider + 0x30;
-//    }
-//    else
-//    {
-//      *converted = 0x30;
-//    }
-//  }
-//  return converted;
-//}
 //// vim:cin:ai:sts=2 sw=2 ft=cpp
