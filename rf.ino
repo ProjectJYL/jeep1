@@ -65,8 +65,6 @@ typedef struct RF_buf {
 static RF_buf tx_buf; //transmit buffer
 static RF_buf rx_buf; //receive buffer
 
-
-
 void RF_Setup(void)
 {
   //
@@ -101,34 +99,28 @@ void RF_Setup(void)
   // Open 'our' pipe for writing
   // Open the 'other' pipe for reading, in position #1 (we can have up to 5 pipes open for reading)
 
-  //if ( role == role_ping_out )
+  if ( role == role_ping_out )
   {
-    //radio.openWritingPipe(pipes[0]);
+    radio.openWritingPipe(pipes[0]);
     radio.openReadingPipe(1, pipes[1]);
   }
-  //else
+  else
   {
-    //radio.openWritingPipe(pipes[1]);
-    //radio.openReadingPipe(1,pipes[0]);
+    radio.openWritingPipe(pipes[1]);
+    radio.openReadingPipe(1,pipes[0]);
   }
 
   //
   // Start listening
   //
-
   radio.startListening();
 
   //
   // Dump the configuration of the rf unit for debugging
   //
-
   radio.setPALevel(RF24_PA_LOW);
   radio.setDataRate(RF24_2MBPS);
   radio.printDetails();
-  //change role to ping_out
-  role = role_ping_out;
-  radio.openWritingPipe(pipes[0]);
-  radio.openReadingPipe(1, pipes[1]);
   tx_buf.JeepID = JEEP_ID;
 }
 
@@ -137,8 +129,6 @@ void RF_Loop(void)
   //
   // Ping out role.  Repeatedly send the current time
   //
-
-
   if (role == role_ping_out)
   {
     // First, stop listening so we can talk.
@@ -156,7 +146,7 @@ void RF_Loop(void)
     else{
       printf("FAILED to send the data :(. ");
     }
-    /*
+    
     // Now, continue listening. switch to listening mode
     radio.startListening();
 
@@ -173,6 +163,8 @@ void RF_Loop(void)
     {
       printf("Failed, response timed out.\n\r");
     } //proceed to print the result received
+
+    /*
     else
     {
       char *long_str; //for display long int as char array
@@ -205,7 +197,7 @@ void RF_Loop(void)
     }
     */
     // Try again 1s later
-    delay(20); //to allow faster role transition reduce the time. 
+    //delay(1000); //to allow faster role transition reduce the time. 
   }
 
   //
@@ -213,8 +205,14 @@ void RF_Loop(void)
   //
   if ( role == role_pong_back )
   {
+     // Wait here until we get a response, or timeout (250ms)
+    unsigned long started_waiting_at = millis();
+    bool timeout = false;
+    while ( ! radio.available() && ! timeout )
+      if (millis() - started_waiting_at > 250 ) //increase timeout period
+        timeout = true;
     // if there is data ready
-    if(radio.available())
+    if(!timeout)
     {
       // Dump the payloads until we've gotten everything
       bool done = false;
@@ -237,6 +235,8 @@ void RF_Loop(void)
         // Delay just a little bit to let the other unit and make the transition to receiver
         delay(20);
       }
+      //let's print out the data received
+      printf("Data RECEIVED! Jeep id: %d. Timestamp: %lu. \n\r", rx_buf.JeepID, rx_buf.timestamp);
       //stop listening and trasmit data back here
       radio.stopListening();
 
