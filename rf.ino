@@ -106,6 +106,7 @@ void RF_Setup(void)
   }
   else
   {
+    role = role_pong_back;
     radio.openWritingPipe(pipes[1]);
     radio.openReadingPipe(1,pipes[0]);
   }
