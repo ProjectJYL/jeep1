@@ -156,6 +156,7 @@ void RF_Loop(void)
     else{
       printf("FAILED to send the data :(. ");
     }
+    /*
     // Now, continue listening. switch to listening mode
     radio.startListening();
 
@@ -202,8 +203,9 @@ void RF_Loop(void)
       delay(200);
       digitalWrite(LED13, LOW);
     }
+    */
     // Try again 1s later
-    delay(500); //to allow faster role transition reduce the time. 
+    delay(20); //to allow faster role transition reduce the time. 
   }
 
   //
@@ -253,6 +255,20 @@ void RF_Loop(void)
     }
   }
 
+  //swtich role back and forth
+  if(role == role_ping_out)
+  {
+    printf("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK\n\r");
+    role = role_pong_back;
+    radio.openWritingPipe(pipes[1]);
+    radio.openReadingPipe(1, pipes[0]);
+  }else{
+    printf("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK\n\r");
+    role = role_ping_out;
+    radio.openWritingPipe(pipes[0]);
+    radio.openReadingPipe(1, pipes[1]);
+  }
+
   //
   // Change roles
   //
@@ -281,26 +297,4 @@ void RF_Loop(void)
   }
 }
 
-//char * convertLtoStr(unsigned long value)
-//{
-//  //max is 4,294,967,295
-//  char * converted; //temp string for manipulation and return
-//  converted = (char *)malloc(10);
-//  //converted = converted + 9;
-//  //start with most significant digit
-//  //reduce one zero from the divider
-//  //use a for loop
-//  for(long divider = 1000000000, converted = converted+9 ; divider > 0; divider/10, converted--)
-//  {
-//    if(value/divider)
-//    {
-//      *converted = value/divider + 0x30;
-//    }
-//    else
-//    {
-//      *converted = 0x30;
-//    }
-//  }
-//  return converted;
-//}
 //// vim:cin:ai:sts=2 sw=2 ft=cpp
