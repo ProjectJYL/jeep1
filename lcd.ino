@@ -90,10 +90,10 @@ void LCD_Setup()
   lcdFunTime_short(); // Runs a 30-second demo of graphics functions
   
   // Wait for serial to come in, then clear display and go to echo
-  while (!Serial.available())
-    ;
-  clearDisplay(WHITE);
-  updateDisplay();
+  //while (!Serial.available())
+    //;
+  //clearDisplay(WHITE);
+  //updateDisplay();
 }
 
 // Loop turns the display into a local serial monitor echo.

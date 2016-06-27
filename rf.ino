@@ -106,7 +106,6 @@ void RF_Setup(void)
   }
   else
   {
-    role = role_pong_back;
     radio.openWritingPipe(pipes[1]);
     radio.openReadingPipe(1,pipes[0]);
   }
@@ -119,7 +118,7 @@ void RF_Setup(void)
   //
   // Dump the configuration of the rf unit for debugging
   //
-  radio.setPALevel(RF24_PA_LOW);
+//  radio.setPALevel(RF24_PA_LOW);
   radio.setDataRate(RF24_2MBPS);
   radio.printDetails();
   tx_buf.JeepID = JEEP_ID;
@@ -150,7 +149,7 @@ void RF_Loop(void)
     
     // Now, continue listening. switch to listening mode
     radio.startListening();
-
+/*
     // Wait here until we get a response, or timeout (250ms)
     unsigned long started_waiting_at = millis();
     bool timeout = false;
@@ -164,6 +163,7 @@ void RF_Loop(void)
     {
       printf("Failed, response timed out.\n\r");
     } //proceed to print the result received
+    */
 
     /*
     else
@@ -217,6 +217,8 @@ void RF_Loop(void)
     {
       // Dump the payloads until we've gotten everything
       bool done = false;
+      unsigned long received_time = millis(); //for calculating response time
+      char *long_str = (char*)malloc(14);
       while(!done)
       {
         // Fetch the payload, and see if this was the last one.
@@ -231,13 +233,28 @@ void RF_Loop(void)
 //        setStr(long_str, 6, 8, BLACK);
 //        updateDisplay();
         digitalWrite(LED13, HIGH); //flash the lED
-        delay(200);
+        delay(20);
         digitalWrite(LED13, LOW);
         // Delay just a little bit to let the other unit and make the transition to receiver
         delay(20);
       }
       //let's print out the data received
-      printf("Data RECEIVED! Jeep id: %d. Timestamp: %lu. \n\r", rx_buf.JeepID, rx_buf.timestamp);
+      printf("Data RECEIVED! Jeep id: %d. Timestamp: %lu. \n\r", rx_buf.JeepID, millis());
+      //write on display once
+      clearDisplay(WHITE);
+      setStr("Jeep ID:", 0, 0, BLACK);
+      setStr(itoa(rx_buf.JeepID, NULL ,10), 50, 0, BLACK);
+      setStr("Time: ", 0, 8, BLACK);
+      //use sprintf to output long int to a char array buffer then display it
+      sprintf(long_str, "%lu", received_time);
+      setStr(long_str, 30, 8, BLACK);
+      //display response time
+      sprintf(long_str, "%d", received_time - tx_buf.timestamp);
+      setStr("Elapsed: ", 0, 16, BLACK);
+      setStr(long_str, 50, 16, BLACK);
+      updateDisplay();
+      updateDisplay();
+      /*
       //stop listening and trasmit data back here
       radio.stopListening();
 
@@ -252,8 +269,11 @@ void RF_Loop(void)
       {
         printf("Can't send response. \n\r");
       }
+      
       radio.startListening(); //start listening again
+      */
     }
+    
   }
 
   //swtich role back and forth
